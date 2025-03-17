@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Админ-панель</title>
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  background-color: #e9ecef;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  background-color: #ffffff;
+  padding: 35px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+h1, h3 {
+  text-align: center;
+  color: #212529;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+input {
+  padding: 12px;
+  margin: 5px 0;
+  border: 1px solid #adb5bd;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+button {
+  padding: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button.add {
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+button.edit {
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+
+button.delete {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 14px;
+  border: 1px solid #dee2e6;
+  text-align: left;
+}
+
+th {
+  background-color: #f1f3f5;
+}
+
+tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Управление товарами</h1>
+
+    <div>
+      <h3>Добавить товар</h3>
+      <div class="form-group">
+        <input id="name" placeholder="Название">
+      </div>
+      <div class="form-group">
+        <input id="price" type="number" placeholder="Цена">
+      </div>
+      <div class="form-group">
+        <input id="description" placeholder="Описание">
+      </div>
+      <div class="form-group">
+        <input id="category" placeholder="Категории (через запятую)">
+      </div>
+      <button onclick="addProduct()">Добавить</button>
+    </div>
+
+    <h3>Список товаров</h3>
+    <table id="productsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Цена</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8080/products';
+
+    async function loadProducts() {
+      const response = await fetch(API);
+      const products = await response.json();
+
+      const tbody = document.querySelector('#productsTable tbody');
+      tbody.innerHTML = '';
+
+      products.forEach(p => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${p.id}</td>
+          <td>${p.name}</td>
+          <td>${p.price} ₽</td>
+          <td>
+            <button class="edit" onclick="editProduct(${p.id})">Редактировать</button>
+            <button class="delete" onclick="deleteProduct(${p.id})">Удалить</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function addProduct() {
+      const product = {
+        name: document.getElementById('name').value,
+        price: Number(document.getElementById('price').value),
+        description: document.getElementById('description').value,
+        category: document.getElementById('category').value
+          .split(',')
+          .map(c => c.trim())
+          .filter(c => c !== '')
+      };
+
+      if (!product.name || !product.price || !product.description) {
+        alert('Заполните все поля!');
+        return;
+      }
+
+      try {
+        const response = await fetch(API, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(product)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Ошибка: ${errorData.message || response.statusText}`);
+          return;
+        }
+
+        loadProducts();
+        clearForm();
+      } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при добавлении товара');
+      }
+    }
+
+    async function deleteProduct(id) {
+      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      loadProducts();
+    }
+
+    loadProducts();
+
+    function clearForm() {
+      document.getElementById('name').value = '';
+      document.getElementById('price').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('category').value = '';
+    }
+  </script>
+</body>
+</html>
